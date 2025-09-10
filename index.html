@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simple Frontend Auth</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f8f9fa; padding:20px; }
+    .card { max-width:400px; margin:20px auto; padding:20px; background:white; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+    input, button { width:100%; padding:10px; margin:5px 0; }
+    button { background:#007bff; border:none; color:white; cursor:pointer; }
+    button:hover { background:#0056b3; }
+    .link { color:#007bff; cursor:pointer; text-decoration:underline; }
+    .hidden { display:none; }
+    .error { color:red; font-size:14px; }
+  </style>
+</head>
+<body>
+  <div class="card" id="home">
+    <h2>Welcome</h2>
+    <p>This is a simple frontend-only login/register demo (not secure!).</p>
+    <button onclick="showLogin()">Login</button>
+    <button onclick="showRegister()">Register</button>
+  </div>
+
+  <div class="card hidden" id="login">
+    <h2>Login</h2>
+    <input type="email" id="loginEmail" placeholder="Email" required />
+    <input type="password" id="loginPassword" placeholder="Password" required />
+    <div class="error" id="loginError"></div>
+    <button onclick="login()">Login</button>
+    <p>Don’t have an account? <span class="link" onclick="showRegister()">Register</span></p>
+  </div>
+
+  <div class="card hidden" id="register">
+    <h2>Register</h2>
+    <input type="text" id="regName" placeholder="Full Name" required />
+    <input type="email" id="regEmail" placeholder="Email" required />
+    <input type="password" id="regPassword" placeholder="Password" required />
+    <div class="error" id="regError"></div>
+    <button onclick="register()">Register</button>
+    <p>Already have an account? <span class="link" onclick="showLogin()">Login</span></p>
+  </div>
+
+  <div class="card hidden" id="dashboard">
+    <h2>Dashboard</h2>
+    <p id="welcomeMsg"></p>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <script>
+    // ---------- LocalStorage helpers ----------
+    function loadUsers() {
+      return JSON.parse(localStorage.getItem("users") || "[]");
+    }
+    function saveUsers(users) {
+      localStorage.setItem("users", JSON.stringify(users));
+    }
+    function setSession(email) {
+      localStorage.setItem("session", email);
+    }
+    function getSession() {
+      return localStorage.getItem("session");
+    }
+    function clearSession() {
+      localStorage.removeItem("session");
+    }
+
+    // ---------- UI helpers ----------
+    function hideAll() {
+      document.querySelectorAll(".card").forEach(c => c.classList.add("hidden"));
+    }
+    function showLogin() {
+      hideAll(); document.getElementById("login").classList.remove("hidden");
+    }
+    function showRegister() {
+      hideAll(); document.getElementById("register").classList.remove("hidden");
+    }
+    function showDashboard() {
+      hideAll(); document.getElementById("dashboard").classList.remove("hidden");
+    }
+    function showHome() {
+      hideAll(); document.getElementById("home").classList.remove("hidden");
+    }
+
+    // ---------- Auth functions ----------
+    function register() {
+      const name = document.getElementById("regName").value.trim();
+      const email = document.getElementById("regEmail").value.trim();
+      const password = document.getElementById("regPassword").value.trim();
+      const errorEl = document.getElementById("regError");
+
+      errorEl.textContent = "";
+      if (!name || !email || !password) {
+        errorEl.textContent = "All fields required!";
+        return;
+      }
+
+      let users = loadUsers();
+      if (users.find(u => u.email === email)) {
+        errorEl.textContent = "User already exists!";
+        return;
+      }
+
+      users.push({ name, email, password });
+      saveUsers(users);
+      setSession(email);
+      document.getElementById("welcomeMsg").textContent = `Welcome, ${name} (${email})`;
+      showDashboard();
+    }
+
+    function login() {
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value.trim();
+      const errorEl = document.getElementById("loginError");
+
+      errorEl.textContent = "";
+      let users = loadUsers();
+      let user = users.find(u => u.email === email && u.password === password);
+      if (!user) {
+        errorEl.textContent = "Invalid email or password!";
+        return;
+      }
+
+      setSession(email);
+      document.getElementById("welcomeMsg").textContent = `Welcome back, ${user.name} (${user.email})`;
+      showDashboard();
+    }
+
+    function logout() {
+      clearSession();
+      showHome();
+    }
+
+    // ---------- On page load ----------
+    window.onload = () => {
+      const session = getSession();
+      if (session) {
+        const users = loadUsers();
+        const user = users.find(u => u.email === session);
+        if (user) {
+          document.getElementById("welcomeMsg").textContent = `Welcome back, ${user.name} (${user.email})`;
+          showDashboard();
+          return;
+        }
+      }
+      showHome();
+    };
+  </script>
+</body>
+</html>
